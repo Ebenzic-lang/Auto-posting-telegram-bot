@@ -1,60 +1,68 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext
-import config
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
+
+# 🔴 PUT YOUR NEW TOKEN HERE (MAKE SURE IT WORKS)
+TOKEN = "8647237147:AAFM4Klg_1Xg0bSwYrcfxqvqv1jhqiTeaRU"
+
+# MAIN MENU
+main_menu = ReplyKeyboardMarkup(
+    [["START", "REPORT"], ["NOVA", "SAFECHECK"]],
+    resize_keyboard=True
+)
+
+# START FLOW MENU
+start_menu = ReplyKeyboardMarkup(
+    [["First step"], ["My profile"], ["Back to NOVA"]],
+    resize_keyboard=True
+)
 
 # START COMMAND
-def start(update: Update, context: CallbackContext):
-    keyboard = [
-        [InlineKeyboardButton("✅ Join Channel", url=f"https://t.me/{config.CHANNEL_USERNAME.replace('@','')}")],
-        [InlineKeyboardButton("🔓 I Joined (Unlock)", callback_data="check_join")]
-    ]
-
-    update.message.reply_text(
-        "Welcome 👋\n\nGet access to exclusive drops + winner alerts.\n\nStep 1/2: Join our channel to unlock.",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "DD PROTOCOL uses a gamified interaction model.\n\n"
+        "Click I AGREE to continue.",
+        reply_markup=ReplyKeyboardMarkup([["I AGREE"]], resize_keyboard=True)
     )
 
-# CHECK IF USER JOINED
-def check_join(update: Update, context: CallbackContext):
-    query = update.callback_query
-    user_id = query.from_user.id
+# HANDLE BUTTONS
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
 
-    member = context.bot.get_chat_member(config.CHANNEL_USERNAME, user_id)
-
-    if member.status in ['member', 'administrator', 'creator']:
-        keyboard = [
-            [InlineKeyboardButton("🎰 Play Now", url=config.PLAY_LINK)],
-            [InlineKeyboardButton("🎁 Today’s Offer", url=config.OFFER_LINK)],
-            [InlineKeyboardButton("💬 Support", url=config.SUPPORT_LINK)]
-        ]
-
-        query.edit_message_text(
-            "Unlocked 🎉\n\nStep 2/2: Continue below:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-    else:
-        keyboard = [
-            [InlineKeyboardButton("✅ Join Channel", url=f"https://t.me/{config.CHANNEL_USERNAME.replace('@','')}")],
-            [InlineKeyboardButton("🔓 Try Unlock Again", callback_data="check_join")]
-        ]
-
-        query.answer("You must join first!", show_alert=True)
-
-        query.edit_message_text(
-            "Not subscribed yet—join to unlock access.\n\n• Exclusive signals\n• Daily winners\n• VIP alerts",
-            reply_markup=InlineKeyboardMarkup(keyboard)
+    if text == "I AGREE":
+        await update.message.reply_text(
+            "Profile linked.\nNOVA access active.\n\nChoose an option below:",
+            reply_markup=main_menu
         )
 
-# MAIN FUNCTION
-def main():
-    updater = Updater(config.BOT_TOKEN, use_context=True)
-    dp = updater.dispatcher
+    elif text == "START":
+        await update.message.reply_text(
+            "Choose your next action:",
+            reply_markup=start_menu
+        )
 
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CallbackQueryHandler(check_join, pattern="check_join"))
+    elif text == "First step":
+        await update.message.reply_text("Starting process...")
 
-    updater.start_polling()
-    updater.idle()
+    elif text == "My profile":
+        await update.message.reply_text("Loading profile...")
 
-if __name__ == "__main__":
-    main()
+    elif text == "Back to NOVA":
+        await update.message.reply_text("Back to main menu", reply_markup=main_menu)
+
+    elif text == "REPORT":
+        await update.message.reply_text("Report section")
+
+    elif text == "NOVA":
+        await update.message.reply_text("NOVA system active")
+
+    elif text == "SAFECHECK":
+        await update.message.reply_text("Safety check complete")
+
+# RUN BOT
+app = ApplicationBuilder().token(TOKEN).build()
+
+app.add_handler(CommandHandler("start", start))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+print("Bot running...")
+app.run_polling()
